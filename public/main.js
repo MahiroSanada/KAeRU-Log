@@ -3,6 +3,7 @@ let messages = [];
 let myName = localStorage.getItem('chat_username') || '';
 
 const el = {
+	container: document.querySelector('main'),
 	messages: document.getElementById('messages'),
 	input: document.getElementById('messageInput'),
 	send: document.getElementById('sendBtn'),
@@ -23,6 +24,8 @@ const el = {
 	userCount: document.getElementById('userCount')
 };
 
+if (el.usernameTag) el.usernameTag.textContent = myName || '未設定';
+
 let isAutoScroll = true;
 
 function showToast(t, ms = 1800) {
@@ -39,13 +42,14 @@ function nowTime() {
 }
 
 function atBottom() {
-	const c = el.messages;
+	const c = el.container || document.documentElement;
 	return c.scrollHeight - c.scrollTop - c.clientHeight < 80;
 }
 
 function scrollToBottom(smooth = true) {
-	el.messages.scrollTo({
-		top: el.messages.scrollHeight,
+	const c = el.container || document.documentElement;
+	c.scrollTo({
+		top: c.scrollHeight,
 		behavior: smooth ? 'smooth' : 'auto'
 	});
 }
@@ -73,7 +77,7 @@ function renderMessage(msg) {
 	dot.textContent = '•';
 	dot.style.opacity = '0.6';
 	const timeEl = document.createElement('span');
-	timeEl.textContent = msg.time ? msg.time : '';
+	timeEl.textContent = msg.time || '';
 	meta.append(nameEl, dot, timeEl);
 	const textEl = document.createElement('div');
 	textEl.className = 'text';
@@ -89,21 +93,23 @@ async function fetchMessages() {
 		});
 		if (!res.ok) throw 0;
 		messages = await res.json();
-		el.messages.innerHTML = '';
-		for (let i = 0; i < messages.length; i++) {
-			el.messages.appendChild(renderMessage(messages[i]));
+		if (el.messages) {
+			el.messages.innerHTML = '';
+			for (let i = 0; i < messages.length; i++) {
+				el.messages.appendChild(renderMessage(messages[i]));
+			}
 		}
 		if (isAutoScroll) scrollToBottom(false);
-		else el.newMsgIndicator.style.display = 'block';
+		else if (el.newMsgIndicator) el.newMsgIndicator.style.display = 'block';
 	} catch {
 		showToast('メッセージ取得に失敗しました');
 	}
 }
 async function sendMessage() {
-	const txt = (el.input.value || '').trim();
+	const txt = (el.input && el.input.value || '').trim();
 	if (!txt) return;
 	if (!myName) {
-		openUserModal();
+		if (el.userModal) el.userModal.classList.add('show');
 		showToast('ユーザー名を設定してください');
 		return;
 	}
@@ -124,7 +130,7 @@ async function sendMessage() {
 			const j = await res.json().catch(() => ({}));
 			throw j;
 		}
-		el.input.value = '';
+		if (el.input) el.input.value = '';
 		await fetchMessages();
 	} catch {
 		showToast('送信に失敗しました');
@@ -132,24 +138,24 @@ async function sendMessage() {
 }
 
 function openUserModal() {
-	el.usernameInput.value = myName || '';
-	el.userModal.classList.add('show');
+	if (el.usernameInput) el.usernameInput.value = myName || '';
+	if (el.userModal) el.userModal.classList.add('show');
 }
 
 function closeUserModal() {
-	el.userModal.classList.remove('show');
+	if (el.userModal) el.userModal.classList.remove('show');
 }
 
 function openAdminModal() {
-	el.adminPass.value = '';
-	el.adminModal.classList.add('show');
+	if (el.adminPass) el.adminPass.value = '';
+	if (el.adminModal) el.adminModal.classList.add('show');
 }
 
 function closeAdminModal() {
-	el.adminModal.classList.remove('show');
+	if (el.adminModal) el.adminModal.classList.remove('show');
 }
 async function clearAllMessages() {
-	const p = el.adminPass.value || '';
+	const p = el.adminPass && el.adminPass.value || '';
 	if (!p) {
 		showToast('パスワードを入力してください');
 		return;
@@ -173,8 +179,8 @@ async function clearAllMessages() {
 		showToast('削除に失敗しました');
 	}
 }
-el.send.addEventListener('click', sendMessage);
-el.input.addEventListener('keydown', e => {
+if (el.send) el.send.addEventListener('click', sendMessage);
+if (el.input) el.input.addEventListener('keydown', e => {
 	if (e.key === 'Enter' && !e.shiftKey) {
 		e.preventDefault();
 		sendMessage();
@@ -183,7 +189,7 @@ el.input.addEventListener('keydown', e => {
 if (el.userOpen) el.userOpen.addEventListener('click', openUserModal);
 if (el.userCancel) el.userCancel.addEventListener('click', closeUserModal);
 if (el.userSave) el.userSave.addEventListener('click', async () => {
-	const v = (el.usernameInput.value || '').trim().slice(0, 24);
+	const v = (el.usernameInput && el.usernameInput.value || '').trim().slice(0, 24);
 	if (!v) {
 		showToast('ユーザー名は1〜24文字で設定してください');
 		return;
@@ -198,14 +204,18 @@ if (el.userSave) el.userSave.addEventListener('click', async () => {
 if (el.adminOpen) el.adminOpen.addEventListener('click', openAdminModal);
 if (el.adminClose) el.adminClose.addEventListener('click', closeAdminModal);
 if (el.clearBtn) el.clearBtn.addEventListener('click', clearAllMessages);
-el.messages.addEventListener('scroll', () => {
-	isAutoScroll = atBottom();
-	if (isAutoScroll) el.newMsgIndicator.style.display = 'none';
-});
-el.newMsgIndicator.addEventListener('click', () => {
-	scrollToBottom(true);
-	el.newMsgIndicator.style.display = 'none';
-});
+if (el.container) {
+	el.container.addEventListener('scroll', () => {
+		isAutoScroll = atBottom();
+		if (isAutoScroll && el.newMsgIndicator) el.newMsgIndicator.style.display = 'none';
+	});
+}
+if (el.newMsgIndicator) {
+	el.newMsgIndicator.addEventListener('click', () => {
+		scrollToBottom(true);
+		el.newMsgIndicator.style.display = 'none';
+	});
+}
 socket.on('connect', () => {
 	if (el.connText) el.connText.textContent = 'オンライン';
 });
@@ -214,18 +224,21 @@ socket.on('disconnect', () => {
 });
 socket.on('newMessage', msg => {
 	messages.push(msg);
-	el.messages.appendChild(renderMessage(msg));
+	if (el.messages) el.messages.appendChild(renderMessage(msg));
 	if (isAutoScroll) scrollToBottom(true);
-	else el.newMsgIndicator.style.display = 'block';
+	else if (el.newMsgIndicator) el.newMsgIndicator.style.display = 'block';
 });
 socket.on('clearMessages', () => {
 	messages = [];
-	el.messages.innerHTML = '';
+	if (el.messages) el.messages.innerHTML = '';
 	showToast('全メッセージ削除されました');
 });
 socket.on('userCount', d => {
 	if (!d) return;
-	if (typeof d === 'number' || typeof d === 'string') el.userCount.textContent = `オンライン: ${d}`;
-	else if (typeof d === 'object' && d.userCount !== undefined) el.userCount.textContent = `オンライン: ${d.userCount}`;
+	if (typeof d === 'number' || typeof d === 'string') {
+		if (el.userCount) el.userCount.textContent = `オンライン: ${d}`;
+	} else if (typeof d === 'object' && d.userCount !== undefined) {
+		if (el.userCount) el.userCount.textContent = `オンライン: ${d.userCount}`;
+	}
 });
 fetchMessages();
