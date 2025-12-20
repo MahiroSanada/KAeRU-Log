@@ -75,6 +75,25 @@ header.appbar {
 	color: var(--muted);
 }
 
+.dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--warning);
+	box-shadow: 0 0 0 4px rgba(255, 211, 91, 0.15);
+	flex: 0 0 10px
+}
+
+.dot.online {
+	background: var(--success);
+	box-shadow: 0 0 0 4px rgba(76, 211, 138, 0.15)
+}
+
+.dot.offline {
+	background: var(--danger);
+	box-shadow: 0 0 0 4px rgba(255, 91, 110, 0.15)
+}
+
 .toolbar {
 	display: flex;
 	gap: 8px;
