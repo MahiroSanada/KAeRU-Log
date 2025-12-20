@@ -44,6 +44,9 @@ header.appbar {
 	background: linear-gradient(180deg, rgba(23, 26, 43, 0.9), rgba(23, 26, 43, 0.75));
 	border-bottom: 1px solid var(--border);
 	box-shadow: var(--shadow);
+	position: sticky;
+	top: 0;
+	z-index: 50;
 }
 
 .brand {
@@ -85,15 +88,11 @@ button.btn {
 	padding: 8px 12px;
 	font-weight: 600;
 	cursor: pointer;
-	transition: transform .06s ease, border-color .2s ease, background .2s ease;
-}
-
-button.btn:hover {
-	border-color: #2f3761;
+	transition: all .15s ease;
 }
 
 button.btn:active {
-	transform: translateY(1px) scale(0.99);
+	transform: translateY(1px) scale(0.98);
 }
 
 button.btn.danger {
@@ -102,11 +101,17 @@ button.btn.danger {
 	color: #ffdbe1;
 }
 
+button.btn.accent {
+	border-color: var(--accent);
+	background: linear-gradient(180deg, #4c6eff, #6c8cff);
+	color: #fff;
+}
+
 main {
 	flex: 1;
-	overflow: auto;
+	overflow-y: auto;
 	padding: 14px 12px 0 12px;
-	position: relative;
+	scroll-behavior: smooth;
 }
 
 .notice {
@@ -119,14 +124,15 @@ main {
 .messages {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-	padding-bottom: 16px;
+	gap: 12px;
+	padding-bottom: 20px;
 }
 
 .msg {
 	display: flex;
-	gap: 10px;
-	max-width: 92%;
+	gap: 12px;
+	max-width: 90%;
+	animation: fadeIn 0.25s ease;
 }
 
 .msg.self {
@@ -150,15 +156,20 @@ main {
 .bubble {
 	background: var(--bubble);
 	border: 1px solid var(--border);
-	border-radius: 14px;
-	padding: 10px 12px;
-	box-shadow: var(--shadow);
-	min-width: 120px;
+	border-radius: 18px;
+	padding: 12px 16px;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+	min-width: 140px;
+	transition: transform 0.1s ease, background 0.2s ease;
+}
+
+.bubble:hover {
+	transform: translateY(-1px);
 }
 
 .self .bubble {
 	background: var(--bubble-self);
-	border-color: #36407a;
+	border-color: #3e4685;
 }
 
 .meta {
@@ -229,10 +240,6 @@ footer.composer {
 	background: #121631;
 }
 
-.u-edit {
-	margin-left: auto;
-}
-
 textarea {
 	flex: 1;
 	resize: none;
@@ -244,6 +251,7 @@ textarea {
 	padding: 4px 2px;
 	min-height: 44px;
 	max-height: 160px;
+	transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .send {
@@ -265,7 +273,7 @@ textarea {
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity .2s ease, transform .2s ease;
-	z-index: 999999
+	z-index: 999999;
 }
 
 .toast.show {
@@ -355,4 +363,23 @@ textarea {
 	border: 1px solid var(--border);
 	display: none;
 	box-shadow: var(--shadow);
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; transform: translateY(4px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+	.app {
+		max-width: 100%;
+		padding: 0 8px;
+	}
+	.bubble {
+		min-width: 100px;
+		padding: 10px 12px;
+	}
+	textarea {
+		min-height: 36px;
+	}
 }
