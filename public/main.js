@@ -1,6 +1,6 @@
 const socket = io();
 let messages = [];
-let myClientId = null;
+let myToken = localStorage.getItem('chatToken') || '';
 let myName = localStorage.getItem('chat_username') || '';
 
 const el = {
@@ -75,7 +75,7 @@ function focusInput(elm = el.input) {
 
 function renderMessage(msg) {
 	const wrap = document.createElement('div');
-	wrap.className = 'msg' + ((msg.clientId === myClientId) ? ' self' : '');
+	wrap.className = 'msg' + ((msg.clientId === myToken) ? ' self' : '');
 	const avatar = document.createElement('div');
 	avatar.className = 'avatar';
 	avatar.textContent = initials(msg.username);
@@ -126,7 +126,7 @@ async function sendMessage() {
 		showToast('ユーザー名を設定してください');
 		return;
 	}
-	if (!myClientId) {
+	if (!myToken) {
 		showToast('接続中です');
 		return;
 	}
@@ -134,7 +134,7 @@ async function sendMessage() {
 		const payload = {
 			username: myName,
 			message: txt,
-			clientId: myClientId
+			token: myToken
 		};
 		const res = await fetch('/api/messages', {
 			method: 'POST',
@@ -199,15 +199,9 @@ async function clearAllMessages() {
 
 if (el.send) el.send.addEventListener('click', sendMessage);
 if (el.input) {
-	const isMobileLike = window.matchMedia(
-		'(max-width: 820px) and (pointer: coarse)'
-	).matches;
-
+	const isMobileLike = window.matchMedia('(max-width: 820px) and (pointer: coarse)').matches;
 	el.input.addEventListener('keydown', e => {
-		if (isMobileLike) {
-			return;
-		}
-
+		if (isMobileLike) return;
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			sendMessage();
@@ -235,46 +229,45 @@ if (el.input) {
 	if (el.adminOpen) el.adminOpen.addEventListener('click', openAdminModal);
 	if (el.adminClose) el.adminClose.addEventListener('click', closeAdminModal);
 	if (el.clearBtn) el.clearBtn.addEventListener('click', clearAllMessages);
-
-	if (el.container) {
-		el.container.addEventListener('scroll', () => {
-			isAutoScroll = atBottom();
-			if (isAutoScroll && el.newMsgIndicator) el.newMsgIndicator.style.display = 'none';
-		});
-	}
+	if (el.container) el.container.addEventListener('scroll', () => {
+		isAutoScroll = atBottom();
+		if (isAutoScroll && el.newMsgIndicator) el.newMsgIndicator.style.display = 'none';
+	});
 	if (el.newMsgIndicator) el.newMsgIndicator.addEventListener('click', () => {
 		scrollToBottom(true);
 		el.newMsgIndicator.style.display = 'none';
 	});
+}
 
-	socket.on('connect', () => {
-		if (el.connText) el.connText.textContent = 'オンライン';
-	});
-	socket.on('disconnect', () => {
-		if (el.connText) el.connText.textContent = '切断';
-	});
-	socket.on('assignId', id => {
-		myClientId = id;
-	});
-	socket.on('newMessage', msg => {
-		messages.push(msg);
-		if (el.messages) el.messages.appendChild(renderMessage(msg));
-		if (isAutoScroll) scrollToBottom(true);
-		else if (el.newMsgIndicator) el.newMsgIndicator.style.display = 'block';
-	});
-	socket.on('clearMessages', () => {
-		messages = [];
-		if (el.messages) el.messages.innerHTML = '';
-		showToast('全メッセージ削除されました');
-	});
-	socket.on('userCount', d => {
-		if (!d) return;
-		if (typeof d === 'number' || typeof d === 'string') {
-			if (el.userCount) el.userCount.textContent = `オンライン: ${d}`;
-		} else if (typeof d === 'object' && d.userCount !== undefined) {
-			if (el.userCount) el.userCount.textContent = `オンライン: ${d.userCount}`;
-		}
-	});
+socket.on('connect', () => {
+	if (el.connText) el.connText.textContent = 'オンライン';
+});
+socket.on('disconnect', () => {
+	if (el.connText) el.connText.textContent = '切断';
+});
+socket.on('assignToken', token => {
+	myToken = token;
+	localStorage.setItem('chatToken', token);
+});
+socket.on('newMessage', msg => {
+	messages.push(msg);
+	if (el.messages) el.messages.appendChild(renderMessage(msg));
+	if (isAutoScroll) scrollToBottom(true);
+	else if (el.newMsgIndicator) el.newMsgIndicator.style.display = 'block';
+});
+socket.on('clearMessages', () => {
+	messages = [];
+	if (el.messages) el.messages.innerHTML = '';
+	showToast('全メッセージ削除されました');
+});
+socket.on('userCount', d => {
+	if (!d) return;
+	if (typeof d === 'number' || typeof d === 'string') {
+		if (el.userCount) el.userCount.textContent = `オンライン: ${d}`;
+	} else if (typeof d === 'object' && d.userCount !== undefined) {
+		if (el.userCount) el.userCount.textContent = `オンライン: ${d.userCount}`;
+	}
+});
 
-	focusInput();
-	fetchMessages();
+focusInput();
+fetchMessages();
