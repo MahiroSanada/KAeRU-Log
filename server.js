@@ -18,6 +18,20 @@ const lastMessageTime = new Map();
 const lastClearTime = new Map();
 
 function formatTime(date) {
+    // UTCベースで9時間足してJSTに変換
+    const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+
+    const yyyy = jst.getUTCFullYear();
+    const mm = String(jst.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(jst.getUTCDate()).padStart(2, '0');
+    const hh = String(jst.getUTCHours()).padStart(2, '0');
+    const min = String(jst.getUTCMinutes()).padStart(2, '0');
+
+    return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
+}
+
+/* サーバーが必ずJSTタイムゾーンで動作している場合のみ使用
+function formatTime(date) {
 	const yyyy = date.getFullYear();
 	const mm = String(date.getMonth() + 1).padStart(2, '0');
 	const dd = String(date.getDate()).padStart(2, '0');
@@ -25,6 +39,7 @@ function formatTime(date) {
 	const min = String(date.getMinutes()).padStart(2, '0');
 	return `${yyyy}/${mm}/${dd} ${hh}:${min}`;
 }
+*/
 
 function generateToken(clientId) {
 	const hmac = crypto.createHmac('sha256', SECRET_KEY);
