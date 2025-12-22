@@ -29,6 +29,7 @@ const PORT = process.env.PORT || 3000;
 let messages = [];
 const lastMessageTime = new Map();
 const lastClearTime = new Map();
+const tokens = new Map();
 
 function formatTime(date) {
     // UTCベースで9時間足してJSTに変換
@@ -100,7 +101,7 @@ app.post('/api/messages', (req, res) => {
         return res.status(400).json({ error: 'Message length invalid' });
 
     const clientId = verifyToken(token);
-    if (!clientId) return res.status(403).json({ error: 'Invalid token' });
+    if (!clientId || tokens.get(clientId) !== token) return res.status(403).json({ error: 'Invalid token' });
 
     const now = Date.now();
     const lastTime = lastMessageTime.get(clientId) || 0;
@@ -118,6 +119,22 @@ app.post('/api/messages', (req, res) => {
     if (messages.length > 100) messages.shift();
     io.emit('newMessage', msg);
     res.json({ ok: true });
+});
+
+app.post('/api/refresh-token', (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'No token provided' });
+
+    const parts = token.split('.');
+    if (parts.length !== 3) return res.status(400).json({ error: 'Invalid token format' });
+
+    const clientId = parts[0];
+    const stored = tokens.get(clientId);
+    if (!stored || stored !== token) return res.status(403).json({ error: 'Token expired' });
+
+    const newToken = generateToken(clientId);
+    tokens.set(clientId, newToken);
+    res.json({ token: newToken });
 });
 
 app.post('/api/clear', (req, res) => {
@@ -138,8 +155,19 @@ app.post('/api/clear', (req, res) => {
 io.on('connection', socket => {
     const clientId = crypto.randomUUID();
     const token = generateToken(clientId);
+    tokens.set(clientId, token);
+
     socket.emit('assignToken', token);
     io.emit('userCount', io.engine.clientsCount);
+
+    socket.on('authenticate', ({ token }) => {
+        const verifiedId = verifyToken(token);
+        if (!verifiedId || tokens.get(verifiedId) !== token) {
+            socket.emit('notify', 'トークンが無効です。再接続してください');
+            return;
+        }
+    });
+
     socket.on('disconnect', () => io.emit('userCount', io.engine.clientsCount));
 });
 
