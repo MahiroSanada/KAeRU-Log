@@ -89,7 +89,16 @@ function verifyToken(token) {
     return expected === signature ? clientId : null;
 }
 
-app.get('/api/messages', (req, res) => res.json(messages));
+app.get('/api/messages', (req, res) => {
+    res.json(
+        messages.map(m => ({
+            username: m.username,
+            message: m.message,
+            time: m.time,
+            seed: m.seed
+        }))
+    );
+});
 
 app.post('/api/messages', (req, res) => {
     const { username, message, token, seed } = req.body;
@@ -108,16 +117,24 @@ app.post('/api/messages', (req, res) => {
     if (now - lastTime < 1000) return res.status(429).json({ error: '送信には1秒以上間隔をあけてください' });
     lastMessageTime.set(clientId, now);
 
-    const msg = { 
+    const storedMsg = { 
         username, 
         message, 
         time: formatTime(new Date()), 
         clientId,
-		seed 
+        seed 
     };
-    messages.push(msg);
+    messages.push(storedMsg);
     if (messages.length > 100) messages.shift();
-    io.emit('newMessage', msg);
+
+    const publicMsg = {
+        username: storedMsg.username,
+        message: storedMsg.message,
+        time: storedMsg.time,
+        seed: storedMsg.seed
+    };
+
+    io.emit('newMessage', publicMsg);
     res.json({ ok: true });
 });
 
@@ -125,10 +142,11 @@ app.post('/api/refresh-token', (req, res) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: 'No token provided' });
 
-    const parts = token.split('.');
-    if (parts.length !== 3) return res.status(400).json({ error: 'Invalid token format' });
+    const clientId = verifyToken(token);
+    if (!clientId || tokens.get(clientId) !== token) {
+        return res.status(403).json({ error: 'Invalid or expired token' });
+    }
 
-    const clientId = parts[0];
     const newToken = generateToken(clientId);
     tokens.set(clientId, newToken);
     res.json({ token: newToken });
@@ -158,15 +176,15 @@ io.on('connection', socket => {
     io.emit('userCount', io.engine.clientsCount);
 
     socket.on('authenticate', ({ token }) => {
-        let verifiedId = verifyToken(token);
+        const verifiedId = verifyToken(token);
         if (!verifiedId || tokens.get(verifiedId) !== token) {
-            const clientId = token.split('.')[0];
-            const newToken = generateToken(clientId);
-            tokens.set(clientId, newToken);
-            socket.emit('assignToken', newToken);
-            socket.emit('notify', 'トークンが再発行されました。再度送信してください');
+            socket.emit('authFailed', { error: 'Invalid or expired token' });
+            socket.emit('notify', 'トークンが無効です。再認証してください');
             return;
         }
+
+        socket.data = socket.data || {};
+        socket.data.clientId = verifiedId;
     });
 
     socket.on('disconnect', () => io.emit('userCount', io.engine.clientsCount));
