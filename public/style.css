@@ -380,7 +380,7 @@ textarea {
 	box-shadow: var(--shadow);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 820px) {
 
 	html,
 	body {
