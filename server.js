@@ -152,6 +152,19 @@ app.post('/api/messages', async (req, res) => {
     }
 });
 
+app.post('/api/refresh-token', async (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'No token provided' });
+    const parts = token.split('.');
+    if (parts.length !== 3) return res.status(400).json({ error: 'Invalid token format' });
+    const clientId = parts[0];
+    const stored = await redis.get(`token:${clientId}`);
+    if (!stored) return res.status(403).json({ error: 'Token expired' });
+    const newToken = generateToken(clientId);
+    await redis.set(`token:${clientId}`, newToken, 'PX', 5 * 60 * 1000);
+    res.json({ token: newToken });
+});
+
 app.post('/api/clear', async (req, res) => {
     const { password } = req.body;
     const ip = req.ip;
