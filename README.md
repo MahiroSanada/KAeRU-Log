@@ -68,7 +68,7 @@ node server.js
 
 ## デモ
 
-アプリの動作デモはこちらからご覧いただけます
+アプリの動作デモはこちらからご覧いただけます。
 
 [https://server-chat-suan.onrender.com/](https://server-chat-suan.onrender.com/)
 
