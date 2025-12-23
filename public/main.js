@@ -48,7 +48,9 @@ const el = {
 	clearBtn: document.getElementById('clearBtn'),
 	connText: document.getElementById('connText'),
 	connDot: document.getElementById('connDot'),
-	userCount: document.getElementById('userCount')
+	userCount: document.getElementById('userCount'),
+	roomInput: document.getElementById('roomInput'),
+	joinRoomBtn: document.getElementById('joinRoomBtn')
 };
 
 if (el.usernameTag) el.usernameTag.textContent = myName || '未設定';
@@ -360,3 +362,36 @@ socket.on('joinedRoom', () => {
 	fetchMessages();
 	focusInput();
 });
+
+function switchRoom(newRoom) {
+  if (!newRoom || !/^[a-zA-Z0-9_-]{1,32}$/.test(newRoom)) {
+    showToast('ルーム名は半角英数字または一部記号32文字以内で指定してください');
+    return;
+  }
+
+  if (newRoom === roomId) return;
+
+  roomId = newRoom;
+  messages = [];
+  if (el.messages) el.messages.innerHTML = '';
+
+  joinRoom();
+  fetchMessages();
+  showToast(`ルーム "${roomId}" に入室しました`);
+}
+
+if (joinRoomBtn) {
+  joinRoomBtn.addEventListener('click', () => {
+    const newRoom = roomInput.value.trim();
+    switchRoom(newRoom);
+  });
+}
+
+if (roomInput) {
+  roomInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      joinRoomBtn.click();
+    }
+  });
+}
