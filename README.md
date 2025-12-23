@@ -1,6 +1,6 @@
-# はろChat
+# KAeRU Log
 
-はろChat は、Node.js を使って構築した軽量チャットアプリです。  
+KAeRU Log は、Node.js を使って構築した軽量チャットアプリです。  
 
 ---
 
