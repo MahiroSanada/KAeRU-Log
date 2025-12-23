@@ -1,7 +1,6 @@
 # はろChat
 
 はろChat は、Node.js を使って構築した軽量チャットアプリです。  
-Redis を用いた構成と、Redis を使わない単一サーバー実装の両方を含んでいます。
 
 ---
 
@@ -9,9 +8,6 @@ Redis を用いた構成と、Redis を使わない単一サーバー実装の�
 
 ```
 ./
-├─ No-Redis/
-│   ├─ server.js
-│   └─ package.json
 ├─ public/
 │   ├─ index.html
 │   ├─ main.js
@@ -49,7 +45,6 @@ npm install
 プロジェクトルートに `.env` を作成し、以下を記述します：
 
 ```env
-# Redis を使う場合
 REDIS_URL=redis://<ホスト>:<ポート>
 
 # 任意
@@ -57,22 +52,14 @@ ADMIN_PASS=<管理者パスワード>
 SECRET_KEY=<トークン用シークレットキー>
 ```
 
-* `REDIS_URL` は **Redis サーバーを使う場合のみ** 必要です。
-* 単一サーバー実装（No-Redis）では不要です。
+* `REDIS_URL` は **必ず定義して** ください。
 
 ---
 
 ## 起動方法
 
-### Redis を使わない場合
+.env の設定を行った上で以下の方法でサーバー起動してください。
 
-```bash
-node No‑Redis/server.js
-```
-
-### Redis を使う場合
-
-Redis を使う場合は、.env の設定を行った上で以下の方法でサーバー起動してください。
 ```bash
 node server.js
 ```
