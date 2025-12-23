@@ -128,9 +128,13 @@ async function verifyToken(token) {
     return clientId;
 }
 
-app.get('/api/messages', async (req, res) => {
+app.get('/api/messages/:roomId', async (req, res) => {
     try {
-        const raw = await redis.lrange('messages', 0, -1);
+		const roomId = req.params.roomId;
+        if (!/^[a-zA-Z0-9_-]{1,32}$/.test(roomId)) {
+            return res.status(400).json({ error: 'invalid roomId' });
+        }
+        const raw = await redis.lrange(`messages:${roomId}`, 0, -1);
         const messages = raw.map(JSON.parse).map(m => ({
             username: m.username,
             message: m.message,
@@ -145,7 +149,12 @@ app.get('/api/messages', async (req, res) => {
 });
 
 app.post('/api/messages', async (req, res) => {
-    const { username, message, token, seed } = req.body;
+    const { username, message, token, seed, roomId } = req.body;
+    if (!roomId)
+        return res.status(400).json({ error: 'roomId required' });
+	if (!/^[a-zA-Z0-9_-]{1,32}$/.test(roomId)) {
+        return res.status(400).json({ error: 'invalid roomId' });
+    }
     if (!username || !message || !token || !seed)
         return res.status(400).json({ error: 'Invalid data' });
     if (typeof username !== 'string' || username.length === 0 || username.length > 24)
@@ -173,8 +182,10 @@ app.post('/api/messages', async (req, res) => {
         seed 
     };
     try {
-        await redis.rpush('messages', JSON.stringify(storedMsg));
-        await redis.ltrim('messages', -100, -1);
+        const roomKey = `messages:${roomId}`;
+
+        await redis.rpush(roomKey, JSON.stringify(storedMsg));
+        await redis.ltrim(roomKey, -100, -1);
 
         const publicMsg = {
             username: storedMsg.username,
@@ -183,7 +194,7 @@ app.post('/api/messages', async (req, res) => {
             seed: storedMsg.seed
         };
 
-        io.emit('newMessage', publicMsg);
+        io.to(roomId).emit('newMessage', publicMsg);
         res.json({ ok: true });
     } catch (e) {
         console.error(e);
@@ -206,9 +217,14 @@ app.post('/api/clear', async (req, res) => {
     await redis.set(clearKey, now, 'PX', 60000);
 
     try {
-        await redis.del('messages');
-        io.emit('clearMessages');
-		notify(io, '全メッセージ削除されました', 'warning');
+        const { roomId } = req.body;
+        if (!roomId) return res.status(400).json({ error: 'roomId required' });
+        if (!/^[a-zA-Z0-9_-]{1,32}$/.test(roomId)) {
+            return res.status(400).json({ error: 'invalid roomId' });
+        }
+        await redis.del(`messages:${roomId}`);
+        io.to(roomId).emit('clearMessages');
+		notify(io.to(roomId), '全メッセージ削除されました', 'warning');
         res.json({ message: '全メッセージ削除しました' });
     } catch (e) {
         console.error('Redis clear failed', e);
@@ -217,6 +233,28 @@ app.post('/api/clear', async (req, res) => {
 });
 
 io.on('connection', async socket => {
+    socket.on('joinRoom', ({ roomId }) => {
+        if (!socket.data.clientId) {
+            socket.emit('authRequired');
+            return;
+        }
+
+        if (!roomId) return;
+        if (!/^[a-zA-Z0-9_-]{1,32}$/.test(roomId)) return;
+
+        if (socket.data.roomId) {
+            socket.leave(socket.data.roomId);
+        }
+
+        socket.join(roomId);
+        socket.data.roomId = roomId;
+
+        const roomSize = io.sockets.adapter.rooms.get(roomId)?.size || 0;
+        io.to(roomId).emit('roomUserCount', roomSize);
+
+        socket.emit('joinedRoom', { roomId });
+    });
+
     await resetTokensIfMonthChanged();
 
     const clientId = crypto.randomUUID();
@@ -226,10 +264,6 @@ io.on('connection', async socket => {
 
     socket.emit('assignToken', token);
 
-    await redis.incr('connections');
-    const count = await redis.get('connections');
-    io.emit('userCount', Number(count));
-
     socket.on('authenticate', async ({ token }) => {
         const verifiedId = await verifyToken(token);
         if (!verifiedId) {
@@ -238,12 +272,15 @@ io.on('connection', async socket => {
         }
         socket.data = socket.data || {};
         socket.data.clientId = verifiedId;
-    });
-
-    socket.on('disconnect', async () => {
-        await redis.decr('connections');
-        const count = await redis.get('connections');
-        io.emit('userCount', Number(count));
+		socket.emit('authenticated');
+	});
+    socket.on('disconnecting', () => {
+        const roomId = socket.data.roomId;
+        if (roomId) {
+            const roomSize =
+                (io.sockets.adapter.rooms.get(roomId)?.size || 1) - 1;
+            io.to(roomId).emit('roomUserCount', roomSize);
+        }
     });
 });
 
