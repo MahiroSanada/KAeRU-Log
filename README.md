@@ -75,6 +75,14 @@ node server.js
 
 ---
 
+## 記事
+
+KAeRU Logの紹介記事はこちらからご覧いただけます。
+
+[https://qiita.com/Yosshy_123/items/fa7289905f2fca60e450](https://qiita.com/Yosshy_123/items/fa7289905f2fca60e450)
+
+---
+
 ## バグ報告・フィードバック
 
 不具合や改善リクエストは **Issue の作成** または *Yosshy_123@proton.me* までご連絡ください。
