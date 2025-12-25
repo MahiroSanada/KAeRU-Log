@@ -26,10 +26,10 @@ body {
 	height: 100%;
 	margin: 0;
 	padding: 0;
+	width: 100%;
 	font-family: ui-sans-serif, sans-serif;
 	background: var(--bg);
 	color: var(--text);
-	width: 100%;
 }
 
 .app {
@@ -37,7 +37,6 @@ body {
 	flex-direction: column;
 	height: 100dvh;
 	width: 100%;
-	margin: 0;
 }
 
 header.appbar {
@@ -64,7 +63,6 @@ header.appbar {
 	height: 28px;
 	border-radius: 10px;
 	object-fit: cover;
-	display: block;
 }
 
 .title {
@@ -85,17 +83,17 @@ header.appbar {
 	border-radius: 50%;
 	background: var(--warning);
 	box-shadow: 0 0 0 4px rgba(255, 211, 91, 0.15);
-	flex: 0 0 10px
+	flex: 0 0 10px;
 }
 
 .dot.online {
 	background: var(--success);
-	box-shadow: 0 0 0 4px rgba(76, 211, 138, 0.15)
+	box-shadow: 0 0 0 4px rgba(76, 211, 138, 0.15);
 }
 
 .dot.offline {
 	background: var(--danger);
-	box-shadow: 0 0 0 4px rgba(255, 91, 110, 0.15)
+	box-shadow: 0 0 0 4px rgba(255, 91, 110, 0.15);
 }
 
 .toolbar {
@@ -106,13 +104,13 @@ header.appbar {
 button.btn {
 	appearance: none;
 	border: 1px solid var(--border);
-	color: var(--text);
-	background: linear-gradient(180deg, var(--panel), var(--panel-2));
 	border-radius: 10px;
 	padding: 8px 12px;
 	font-weight: 600;
 	cursor: pointer;
-	transition: all .15s ease;
+	transition: all 0.15s ease;
+	color: var(--text);
+	background: linear-gradient(180deg, var(--panel), var(--panel-2));
 }
 
 button.btn.danger {
@@ -147,7 +145,6 @@ main {
 	display: flex;
 	gap: 12px;
 	max-width: 100%;
-	animation: none;
 }
 
 .msg.self {
@@ -166,9 +163,9 @@ main {
 	justify-content: center;
 	color: #b9c3ff;
 	font-weight: 700;
-	flex-shrink: 0;
 	text-align: center;
 	line-height: 1;
+	flex-shrink: 0;
 }
 
 .bubble {
@@ -233,8 +230,6 @@ footer.composer {
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
 	background: linear-gradient(180deg, #151936, #10132b);
-	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-	width: 100%;
 }
 
 .u-box {
@@ -290,7 +285,7 @@ textarea {
 	box-shadow: var(--shadow);
 	opacity: 0;
 	pointer-events: none;
-	transition: opacity .2s ease, transform .2s ease;
+	transition: opacity 0.2s ease, transform 0.2s ease;
 	z-index: 999999;
 }
 
@@ -360,7 +355,7 @@ textarea {
 }
 
 .kbd {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-family: ui-monospace, monospace;
 	background: #121631;
 	border: 1px solid var(--border);
 	border-bottom-color: #2a315a;
@@ -409,10 +404,7 @@ textarea {
 	}
 
 	.logo {
-		width: 28px;
-		height: 28px;
 		border-radius: 8px;
-		object-fit: cover;
 	}
 
 	.title {
