@@ -174,6 +174,7 @@ app.post('/api/messages', async (req, res) => {
 
     const now = Date.now();
 
+	const rateKey = `ratelimit:msg:${clientId}`;
     const lastTsKey = `msg:last_ts:${clientId}`;
     const lastIntervalKey = `msg:last_interval:${clientId}`;
     const sameCountKey = `msg:same_count:${clientId}`;
