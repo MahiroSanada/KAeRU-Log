@@ -161,8 +161,58 @@ app.post('/api/messages', async (req, res) => {
     const clientId = await verifyToken(token);
     if (!clientId) return res.status(403).json({ error: 'Invalid token' });
 
+    const muteKey = `msg:mute:${clientId}`;
+    if (await redis.exists(muteKey)) {
+        io.to(clientId).emit('notify', {
+            message: '連続送信のため20秒間ミュートされています',
+            type: 'warning'
+        });
+        return res.status(429).json({
+            error: '連続送信のため20秒間ミュートされています'
+        });
+    }
+
     const now = Date.now();
     const rateKey = `ratelimit:msg:${clientId}`;
+
+    const now = Date.now();
+
+    const lastTsKey = `msg:last_ts:${clientId}`;
+    const lastIntervalKey = `msg:last_interval:${clientId}`;
+    const sameCountKey = `msg:same_count:${clientId}`;
+
+    const lastTs = await redis.get(lastTsKey);
+
+    if (lastTs) {
+        const interval = now - Number(lastTs);
+        const lastInterval = await redis.get(lastIntervalKey);
+
+        if (lastInterval && Math.abs(interval - Number(lastInterval)) <= 100) {
+            const count = await redis.incr(sameCountKey);
+
+            if (count >= 5) {
+                await redis.set(muteKey, '1', 'EX', 20);
+                await redis.del(sameCountKey);
+                await redis.del(lastIntervalKey);
+
+                io.to(clientId).emit('notify', {
+                    message: '同一間隔の連続送信により20秒間ミュートされました',
+                    type: 'warning'
+                });
+
+                return res.status(429).json({
+                    error: '同一間隔の連続送信により20秒間ミュートされました'
+                });
+            }
+        } else {
+            await redis.set(sameCountKey, 1, 'EX', 30);
+            await redis.set(lastIntervalKey, interval, 'EX', 30);
+        }
+    } else {
+        await redis.set(sameCountKey, 1, 'EX', 30);
+    }
+
+    await redis.set(lastTsKey, now, 'EX', 30);
 
     const last = await redis.get(rateKey);
     if (last && now - Number(last) < 1000) {
@@ -260,6 +310,7 @@ io.on('connection', socket => {
         }
 
         socket.emit('authenticated');
+		socket.join(clientId);
     });
 
     socket.on('joinRoom', ({ roomId }) => {
