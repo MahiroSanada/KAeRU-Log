@@ -233,18 +233,26 @@ io.on('connection', socket => {
         let clientId = token ? await verifyToken(token) : null;
         let assignedToken = null;
 
-        if (!clientId) {
-            clientId = crypto.randomUUID();
-            assignedToken = generateToken(clientId);
-            await redis.set(`token:${clientId}`, assignedToken, 'EX', 60 * 60 * 24);
-        }
-
         socket.data = socket.data || {};
-        socket.data.clientId = clientId;
+        const now = Date.now();
 
-        if (assignedToken) {
-            socket.emit('assignToken', assignedToken);
+        if (!clientId) {
+            if (!socket.data.lastReissue || now - socket.data.lastReissue > 5000) {
+                clientId = crypto.randomUUID();
+                assignedToken = generateToken(clientId);
+                await redis.set(`token:${clientId}`, assignedToken, 'EX', 60 * 60 * 24);
+                socket.data.lastReissue = now;
+                socket.data.clientId = clientId;
+
+                socket.emit('assignToken', assignedToken);
+            } else {
+                socket.emit('authRequired');
+                return;
+            }
+        } else {
+            socket.data.clientId = clientId;
         }
+
         socket.emit('authenticated');
     });
 
